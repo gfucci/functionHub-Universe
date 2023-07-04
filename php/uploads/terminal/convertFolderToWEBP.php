@@ -26,13 +26,33 @@ function convertAllImagesFromFolder($folderPath, $extensions)
                 $imagePath = $path_parts['dirname'] . "/" . $path_parts["basename"];
                 $newImageName = str_replace($path_parts['extension'], 'webp', $path_parts["basename"]);
                 $newImagePath = $path_parts['dirname'] . "/" . $newImageName;
-                $quality = 75;
+
+                $quality = 100;
+
+                list($originalWidth, $originalHeight) = getimagesize($imagePath);
+                $newWidth = 1095; // DEFINA A NOVA LARGURA DA FOTO (USAR A WIDTH QUE FOI SETADA NO CSS)
+                $newHeight = 600; // DEFINA A NOVA ALTURA DA FOTO (USAR A HEIGTH QUE FOI SETADA NO CSS)
+
+                $originalRatio = $originalWidth / $originalHeight;
+                $desiredRatio = $newWidth / $newHeight;
+
+                if ($originalRatio > $desiredRatio) {
+
+                    $adjustedWidth = $newWidth;
+                    $adjustedHeight = $newWidth / $originalRatio;
+                } else {
+
+                    $adjustedWidth = $newHeight * $originalRatio;
+                    $adjustedHeight = $newHeight;
+                }
 
                 if (filesize($folderFile) === 0) {
                     echo "Arquivo corrompido deletado: $folderFile";
                     unlink($folderFile);
                     continue;
                 }
+
+                $image_p = imagecreatetruecolor($adjustedWidth, $adjustedHeight);
                 
                 if ($path_parts["extension"] === "jpg" || $path_parts["extension"] === "jpeg" || $path_parts["extension"] === "JPG") {
                     $image = imagecreatefromjpeg($imagePath);
@@ -46,8 +66,10 @@ function convertAllImagesFromFolder($folderPath, $extensions)
                     imagepalettetotruecolor($image);
                 }
 
-                imagewebp($image, $newImagePath, $quality);
+                imagecopyresampled($image_p, $image, 0, 0, 0, 0, $adjustedWidth, $adjustedHeight, $originalWidth, $originalHeight);
+                imagewebp($image_p, $newImagePath, $quality);
                 imagedestroy($image);
+                imagedestroy($image_p);
 
                 echo "Arquivo convertido: " . $newImagePath . PHP_EOL;
             } else {
